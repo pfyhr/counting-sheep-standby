@@ -4,3 +4,7 @@ xcuserdata/
 DerivedData/
 .build/
 *.resolved
+
+# Electron screensaver
+screensaver/node_modules/
+screensaver/dist/
