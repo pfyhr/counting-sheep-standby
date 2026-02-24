@@ -131,7 +131,6 @@
       bottom: 20%;
       /* animation drives left + bottom via custom properties */
       animation: sheep-run 4.5s linear infinite;
-      transform-origin: center bottom;
     }
 
     /* Body */
@@ -211,33 +210,24 @@
       to   { transform: rotate(12deg); }
     }
 
-    /* Main sheep path animation */
+    /* Main sheep path animation — pure translation, parabolic jump */
     @keyframes sheep-run {
       /* Walk in from left */
-      0%   { left: -60px;  bottom: 20%; transform: scaleX(1)  scale(1);    }
-      28%  { left: 36%;    bottom: 20%; transform: scaleX(1)  scale(1);    }
-      /* Approach & crouch */
-      33%  { left: 42%;    bottom: 20%; transform: scaleX(1)  scale(0.95); }
-      /* Launch — rising */
-      38%  { left: 46%;    bottom: 27%; transform: scaleX(1)  scale(1.05); }
-      /* Apex */
-      44%  { left: 50%;    bottom: 36%; transform: scaleX(-1) scale(1.08); }
-      /* Descend */
-      50%  { left: 54%;    bottom: 27%; transform: scaleX(-1) scale(1.05); }
-      /* Land */
-      55%  { left: 57%;    bottom: 20%; transform: scaleX(-1) scale(0.9);  }
-      /* Bounce settle */
-      59%  { left: 58%;    bottom: 21%; transform: scaleX(-1) scale(1.02); }
-      /* Walk away */
-      62%  { left: 58%;    bottom: 20%; transform: scaleX(-1) scale(1);    }
-      88%  { left: 108%;   bottom: 20%; transform: scaleX(-1) scale(1);    }
-      /* Instant reset (hidden off left) */
-      89%  { left: -60px;  bottom: 20%; transform: scaleX(1)  scale(1);    }
-      100% { left: -60px;  bottom: 20%; transform: scaleX(1)  rotate(0deg)   scale(1);    }
+      0%   { left: -60px; bottom: 20%; }
+      30%  { left: 40%;   bottom: 20%; }
+      /* Jump arc: Y follows 4h·t·(1−t), h=13%, linear segments ≈ parabola */
+      35%  { left: 44%;   bottom: 26%; }
+      40%  { left: 47%;   bottom: 31%; }
+      44%  { left: 50%;   bottom: 33%; }
+      48%  { left: 53%;   bottom: 31%; }
+      53%  { left: 56%;   bottom: 26%; }
+      58%  { left: 60%;   bottom: 20%; }
+      /* Walk off right */
+      88%  { left: 110%;  bottom: 20%; }
+      /* Instant reset off-screen left */
+      89%  { left: -60px; bottom: 20%; }
+      100% { left: -60px; bottom: 20%; }
     }
-
-    /* Legs stop wiggling during jump */
-    #sheep.jumping .leg { animation-play-state: paused; transform: rotate(0deg); }
 
     /* ── Clock ── */
     #clock {
