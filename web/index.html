@@ -342,8 +342,10 @@
     // Randomise jump height: 55–120px
     const h = Math.round(55 + Math.random() * 65);
     // 5% chance of a backflip
-    const flip = Math.random() < 0.05;
-    const R = (deg) => `translateY(0) rotate(${flip ? deg : 0}deg)`;
+    const flip = Math.random() < 0.50; // DEBUG: 50%, revert to 0.05
+    // Negative degrees = counter-clockwise = backflip (against travel direction)
+    const rd = flip ? -360 : 0;
+    const T = (y, deg) => `translateY(${y}) rotate(${deg}deg)`;
 
     // ── Horizontal (left + opacity) ──
     sheepX.animate([
@@ -359,18 +361,19 @@
 
     // ── Vertical + optional backflip rotation ──
     const anim = sheepInner.animate([
-      { offset: 0,    transform: `translateY(0)     rotate(0deg)`,  easing: 'linear'   },
+      { offset: 0,    transform: T('0',    0),        easing: 'linear'  },
       // Anticipation crouch
-      { offset: 0.28, transform: `translateY(0)     rotate(0deg)`,  easing: 'ease-in'  },
-      { offset: 0.31, transform: `translateY(6px)   rotate(0deg)`,  easing: RISE       },
-      // Apex — randomised height, flip halfway if backflip
-      { offset: 0.44, transform: `translateY(-${h}px) rotate(${flip ? 180 : 0}deg)`, easing: FALL },
-      // Land — full rotation done
-      { offset: 0.57, transform: `translateY(0)     rotate(${flip ? 360 : 0}deg)`,   easing: 'ease-out' },
-      // Bounce
-      { offset: 0.60, transform: `translateY(-14px) rotate(${flip ? 360 : 0}deg)`,   easing: 'ease-in'  },
-      { offset: 0.63, transform: `translateY(0)     rotate(${flip ? 360 : 0}deg)` },
-      { offset: 1.0,  transform: `translateY(0)     rotate(0deg)` },
+      { offset: 0.28, transform: T('0',    0),        easing: 'ease-in' },
+      { offset: 0.31, transform: T('6px',  0),        easing: RISE      },
+      // Apex — half rotation reached
+      { offset: 0.44, transform: T(`-${h}px`, rd/2),  easing: FALL      },
+      // Land — full rotation complete
+      { offset: 0.57, transform: T('0',    rd),       easing: 'ease-out'},
+      // Bounce — hold rotation so it doesn't drift
+      { offset: 0.60, transform: T('-14px', rd),      easing: 'ease-in' },
+      { offset: 0.63, transform: T('0',    rd)                          },
+      // Hold at rd through walk-away; snap to 0 happens while hidden
+      { offset: 1.0,  transform: T('0',    rd)                          },
     ], { duration: CYCLE, easing: 'linear', fill: 'forwards' });
 
     // Count exactly when sheep clears the fence (44% = apex)
