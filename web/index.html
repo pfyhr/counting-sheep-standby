@@ -342,7 +342,7 @@
     // Randomise jump height: 55–120px
     const h = Math.round(55 + Math.random() * 65);
     // 5% chance of a backflip
-    const flip = Math.random() < 0.50; // DEBUG: 50%, revert to 0.05
+    const flip = Math.random() < 0.05;
     // Negative degrees = counter-clockwise = backflip (against travel direction)
     const rd = flip ? -360 : 0;
     const T = (y, deg) => `translateY(${y}) rotate(${deg}deg)`;
