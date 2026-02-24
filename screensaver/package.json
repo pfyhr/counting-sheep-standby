@@ -20,7 +20,7 @@
     ],
     "mac": {
       "category": "public.app-category.entertainment",
-      "icon": "../docs/icon.svg",
+      "icon": "assets/icon.png",
       "identity": null
     },
     "dmg": {
