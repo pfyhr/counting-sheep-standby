@@ -223,10 +223,12 @@
       53%  { left: 56%;   bottom: 26%; }
       58%  { left: 60%;   bottom: 20%; }
       /* Walk off right */
-      88%  { left: 110%;  bottom: 20%; }
-      /* Instant reset off-screen left */
-      89%  { left: -60px; bottom: 20%; }
-      100% { left: -60px; bottom: 20%; }
+      88%  { left: 110%;  bottom: 20%; opacity: 1; }
+      /* Hide before teleporting back */
+      88.5% { left: 110%; bottom: 20%; opacity: 0; }
+      89%  { left: -60px; bottom: 20%; opacity: 0; }
+      99%  { left: -60px; bottom: 20%; opacity: 0; }
+      100% { left: -60px; bottom: 20%; opacity: 1; }
     }
 
     /* ── Clock ── */
@@ -348,7 +350,8 @@
   const CYCLE_MS = 4500;
   const FENCE_MS = CYCLE_MS * 0.44; // 1980ms
 
-  function scheduleCount() {
+  function scheduleCount(e) {
+    if (e.animationName !== 'sheep-run') return;
     setTimeout(() => {
       count++;
       counterEl.textContent = `${count} sheep`;
