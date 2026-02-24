@@ -217,7 +217,7 @@
     /* Keyframes removed — sheep is now animated via Web Animations API
        in JS so height and backflip can be randomised per cycle.     */
 
-    /* ── Clock ── */
+    /* ── Clock — portrait: centred; landscape mobile: top-left ── */
     #clock {
       position: absolute;
       top: 50%;
@@ -240,6 +240,18 @@
       margin-top: 6px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
+    }
+
+    /* Landscape on a phone: shrink clock and pin it top-left */
+    @media (orientation: landscape) and (max-height: 500px) {
+      #clock {
+        top: 14px;
+        left: 18px;
+        transform: none;
+        text-align: left;
+      }
+      #time { font-size: clamp(24px, 6vh, 42px); }
+      #date { font-size: clamp(9px,  2vh, 13px); margin-top: 3px; }
     }
 
     /* ── Counter ── */
@@ -347,11 +359,18 @@
     const rd = flip ? -360 : 0;
     const T = (y, deg) => `translateY(${y}) rotate(${deg}deg)`;
 
+    // Portrait screens are narrower: left:40% + 54px body already clears the
+    // fence mid-point (50%) before the apex, so the jump looks late.
+    // Start the leap earlier so the apex aligns with the fence centre.
+    const portrait = window.innerHeight > window.innerWidth;
+    const jStart = portrait ? '32%' : '40%';
+    const jEnd   = portrait ? '68%' : '60%';
+
     // ── Horizontal (left + opacity) ──
     sheepX.animate([
       { offset: 0,     left: '-60px', opacity: '1' },
-      { offset: 0.30,  left: '40%'                 },
-      { offset: 0.58,  left: '60%'                 },
+      { offset: 0.30,  left: jStart                },
+      { offset: 0.58,  left: jEnd                  },
       { offset: 0.88,  left: '110%',  opacity: '1' },
       { offset: 0.885, left: '110%',  opacity: '0' },
       { offset: 0.89,  left: '-60px', opacity: '0' },
