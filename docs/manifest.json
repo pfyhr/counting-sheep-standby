@@ -2,7 +2,7 @@
   "name": "Counting Sheep",
   "short_name": "Sheep",
   "description": "Watch sheep jump over a fence as you drift off to sleep.",
-  "start_url": "/",
+  "start_url": "/counting-sheep-standby/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#07071a",
