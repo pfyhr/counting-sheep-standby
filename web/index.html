@@ -214,25 +214,25 @@
     /* Main sheep path animation */
     @keyframes sheep-run {
       /* Walk in from left */
-      0%   { left: -60px;  bottom: 20%; transform: scaleX(1)  rotate(0deg)   scale(1);    }
-      28%  { left: 36%;    bottom: 20%; transform: scaleX(1)  rotate(0deg)   scale(1);    }
+      0%   { left: -60px;  bottom: 20%; transform: scaleX(1)  scale(1);    }
+      28%  { left: 36%;    bottom: 20%; transform: scaleX(1)  scale(1);    }
       /* Approach & crouch */
-      33%  { left: 42%;    bottom: 20%; transform: scaleX(1)  rotate(-5deg)  scale(0.95); }
+      33%  { left: 42%;    bottom: 20%; transform: scaleX(1)  scale(0.95); }
       /* Launch — rising */
-      38%  { left: 46%;    bottom: 30%; transform: scaleX(1)  rotate(-18deg) scale(1.05); }
+      38%  { left: 46%;    bottom: 27%; transform: scaleX(1)  scale(1.05); }
       /* Apex */
-      44%  { left: 50%;    bottom: 46%; transform: scaleX(-1) rotate(0deg)   scale(1.1);  }
+      44%  { left: 50%;    bottom: 36%; transform: scaleX(-1) scale(1.08); }
       /* Descend */
-      50%  { left: 54%;    bottom: 30%; transform: scaleX(-1) rotate(14deg)  scale(1.05); }
+      50%  { left: 54%;    bottom: 27%; transform: scaleX(-1) scale(1.05); }
       /* Land */
-      55%  { left: 57%;    bottom: 20%; transform: scaleX(-1) rotate(6deg)   scale(0.9);  }
+      55%  { left: 57%;    bottom: 20%; transform: scaleX(-1) scale(0.9);  }
       /* Bounce settle */
-      59%  { left: 58%;    bottom: 21%; transform: scaleX(-1) rotate(0deg)   scale(1.02); }
+      59%  { left: 58%;    bottom: 21%; transform: scaleX(-1) scale(1.02); }
       /* Walk away */
-      62%  { left: 58%;    bottom: 20%; transform: scaleX(-1) rotate(0deg)   scale(1);    }
-      88%  { left: 108%;   bottom: 20%; transform: scaleX(-1) rotate(0deg)   scale(1);    }
+      62%  { left: 58%;    bottom: 20%; transform: scaleX(-1) scale(1);    }
+      88%  { left: 108%;   bottom: 20%; transform: scaleX(-1) scale(1);    }
       /* Instant reset (hidden off left) */
-      89%  { left: -60px;  bottom: 20%; transform: scaleX(1)  rotate(0deg)   scale(1);    }
+      89%  { left: -60px;  bottom: 20%; transform: scaleX(1)  scale(1);    }
       100% { left: -60px;  bottom: 20%; transform: scaleX(1)  rotate(0deg)   scale(1);    }
     }
 
