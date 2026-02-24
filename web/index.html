@@ -130,7 +130,8 @@
       height: 40px;
       bottom: 20%;
       /* animation drives left + bottom via custom properties */
-      animation: sheep-run 4.5s linear infinite;
+      animation: sheep-x 4.5s linear infinite,
+                 sheep-y 4.5s linear infinite;
     }
 
     /* Body */
@@ -210,25 +211,27 @@
       to   { transform: rotate(12deg); }
     }
 
-    /* Main sheep path animation — pure translation, parabolic jump */
-    @keyframes sheep-run {
-      /* Walk in from left */
-      0%   { left: -60px; bottom: 20%; }
-      30%  { left: 40%;   bottom: 20%; }
-      /* Jump arc: Y follows 4h·t·(1−t), h=13%, linear segments ≈ parabola */
-      35%  { left: 44%;   bottom: 26%; }
-      40%  { left: 47%;   bottom: 31%; }
-      44%  { left: 50%;   bottom: 33%; }
-      48%  { left: 53%;   bottom: 31%; }
-      53%  { left: 56%;   bottom: 26%; }
-      58%  { left: 60%;   bottom: 20%; }
-      /* Walk off right */
-      88%  { left: 110%;  bottom: 20%; opacity: 1; }
-      /* Hide before teleporting back */
-      88.5% { left: 110%; bottom: 20%; opacity: 0; }
-      89%  { left: -60px; bottom: 20%; opacity: 0; }
-      99%  { left: -60px; bottom: 20%; opacity: 0; }
-      100% { left: -60px; bottom: 20%; opacity: 1; }
+    /* Horizontal — constant speed, handles opacity for reset flash */
+    @keyframes sheep-x {
+      0%    { left: -60px; opacity: 1; }
+      30%   { left: 40%; }
+      58%   { left: 60%; }
+      88%   { left: 110%;  opacity: 1; }
+      88.5% { left: 110%;  opacity: 0; }
+      89%   { left: -60px; opacity: 0; }
+      99%   { left: -60px; opacity: 0; }
+      100%  { left: -60px; opacity: 1; }
+    }
+
+    /* Vertical — physics beziers derived from degree-elevated quadratic:
+       ease-out (rising):  cubic-bezier(0, 0.67, 0.33, 1)
+       ease-in  (falling): cubic-bezier(0.67, 0, 1, 0.33)        */
+    @keyframes sheep-y {
+      0%  { bottom: 20%; }
+      30% { bottom: 20%; animation-timing-function: cubic-bezier(0, 0.67, 0.33, 1); }
+      44% { bottom: 33%; animation-timing-function: cubic-bezier(0.67, 0, 1, 0.33); }
+      58% { bottom: 20%; }
+      100%{ bottom: 20%; }
     }
 
     /* ── Clock ── */
@@ -351,7 +354,7 @@
   const FENCE_MS = CYCLE_MS * 0.44; // 1980ms
 
   function scheduleCount(e) {
-    if (e.animationName !== 'sheep-run') return;
+    if (e.animationName !== 'sheep-x') return;
     setTimeout(() => {
       count++;
       counterEl.textContent = `${count} sheep`;
