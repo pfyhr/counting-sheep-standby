@@ -127,15 +127,14 @@
     #sheep-x {
       position: absolute;
       bottom: 20%;
+      left: -60px;
       width: 54px;
       height: 40px;
-      animation: sheep-x 4.5s linear infinite;
     }
 
     #sheep {
       width: 54px;
       height: 40px;
-      animation: sheep-y 4.5s linear infinite;
     }
 
     /* Body */
@@ -215,38 +214,8 @@
       to   { transform: rotate(12deg); }
     }
 
-    /* Horizontal — constant speed (linear), handles opacity for reset */
-    @keyframes sheep-x {
-      0%    { left: -60px; opacity: 1; }
-      30%   { left: 40%; }
-      58%   { left: 60%; }
-      88%   { left: 110%;  opacity: 1; }
-      88.5% { left: 110%;  opacity: 0; }
-      89%   { left: -60px; opacity: 0; }
-      99%   { left: -60px; opacity: 0; }
-      100%  { left: -60px; opacity: 1; }
-    }
-
-    /* Vertical — GPU-accelerated translateY, physics beziers from
-       degree-elevated quadratic (constant gravity):
-         rising:  cubic-bezier(0, 0.67, 0.33, 1)
-         falling: cubic-bezier(0.67, 0, 1, 0.33)
-       Extra keyframes: anticipation crouch before launch,
-       small bounce on landing.                              */
-    @keyframes sheep-y {
-      0%   { transform: translateY(0); }
-      /* Anticipation — brief crouch */
-      28%  { transform: translateY(0);    animation-timing-function: ease-in; }
-      31%  { transform: translateY(6px);  animation-timing-function: cubic-bezier(0, 0.67, 0.33, 1); }
-      /* Rising — ease-out (fighting gravity) */
-      44%  { transform: translateY(-70px); animation-timing-function: cubic-bezier(0.67, 0, 1, 0.33); }
-      /* Falling — ease-in (gravity pulls down) */
-      57%  { transform: translateY(0);    animation-timing-function: ease-out; }
-      /* Landing bounce */
-      60%  { transform: translateY(-14px); animation-timing-function: ease-in; }
-      63%  { transform: translateY(0); }
-      100% { transform: translateY(0); }
-    }
+    /* Keyframes removed — sheep is now animated via Web Animations API
+       in JS so height and backflip can be randomised per cycle.     */
 
     /* ── Clock ── */
     #clock {
@@ -359,26 +328,66 @@
   tick();
   setInterval(tick, 1000);
 
-  // ── Sheep counter ──
+  // ── Sheep animation + counter ──
   const counterEl = document.getElementById('counter');
-  const sheepAnim = document.getElementById('sheep-x');
+  const sheepX    = document.getElementById('sheep-x');
+  const sheepInner = document.getElementById('sheep');
   let count = 0;
 
-  // Fence crossing happens at 44% of the 4.5s cycle = 1980ms in.
-  // Fire the counter increment at that exact moment after each cycle start.
-  const CYCLE_MS = 4500;
-  const FENCE_MS = CYCLE_MS * 0.44; // 1980ms
+  const CYCLE  = 4500;
+  const RISE   = 'cubic-bezier(0, 0.67, 0.33, 1)';
+  const FALL   = 'cubic-bezier(0.67, 0, 1, 0.33)';
 
-  function scheduleCount(e) {
-    if (e.animationName !== 'sheep-x') return;
+  function runSheep() {
+    // Randomise jump height: 55–120px
+    const h = Math.round(55 + Math.random() * 65);
+    // 5% chance of a backflip
+    const flip = Math.random() < 0.05;
+    const R = (deg) => `translateY(0) rotate(${flip ? deg : 0}deg)`;
+
+    // ── Horizontal (left + opacity) ──
+    sheepX.animate([
+      { offset: 0,     left: '-60px', opacity: '1' },
+      { offset: 0.30,  left: '40%'                 },
+      { offset: 0.58,  left: '60%'                 },
+      { offset: 0.88,  left: '110%',  opacity: '1' },
+      { offset: 0.885, left: '110%',  opacity: '0' },
+      { offset: 0.89,  left: '-60px', opacity: '0' },
+      { offset: 0.99,  left: '-60px', opacity: '0' },
+      { offset: 1.0,   left: '-60px', opacity: '1' },
+    ], { duration: CYCLE, easing: 'linear', fill: 'forwards' });
+
+    // ── Vertical + optional backflip rotation ──
+    const anim = sheepInner.animate([
+      { offset: 0,    transform: `translateY(0)     rotate(0deg)`,  easing: 'linear'   },
+      // Anticipation crouch
+      { offset: 0.28, transform: `translateY(0)     rotate(0deg)`,  easing: 'ease-in'  },
+      { offset: 0.31, transform: `translateY(6px)   rotate(0deg)`,  easing: RISE       },
+      // Apex — randomised height, flip halfway if backflip
+      { offset: 0.44, transform: `translateY(-${h}px) rotate(${flip ? 180 : 0}deg)`, easing: FALL },
+      // Land — full rotation done
+      { offset: 0.57, transform: `translateY(0)     rotate(${flip ? 360 : 0}deg)`,   easing: 'ease-out' },
+      // Bounce
+      { offset: 0.60, transform: `translateY(-14px) rotate(${flip ? 360 : 0}deg)`,   easing: 'ease-in'  },
+      { offset: 0.63, transform: `translateY(0)     rotate(${flip ? 360 : 0}deg)` },
+      { offset: 1.0,  transform: `translateY(0)     rotate(0deg)` },
+    ], { duration: CYCLE, easing: 'linear', fill: 'forwards' });
+
+    // Count exactly when sheep clears the fence (44% = apex)
     setTimeout(() => {
       count++;
       counterEl.textContent = `${count} sheep`;
-    }, FENCE_MS);
+    }, CYCLE * 0.44);
+
+    // On finish: cancel fill, restart with new random values
+    anim.onfinish = () => {
+      sheepX.getAnimations().forEach(a => a.cancel());
+      sheepInner.getAnimations().forEach(a => a.cancel());
+      runSheep();
+    };
   }
 
-  sheepAnim.addEventListener('animationstart',     scheduleCount);
-  sheepAnim.addEventListener('animationiteration', scheduleCount);
+  runSheep();
 
   // ── Dim on tap (nightstand comfort) ──
   document.body.addEventListener('click', () => {
