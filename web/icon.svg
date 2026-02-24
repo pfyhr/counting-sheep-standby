@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="22" fill="#07071a"/>
+  <!-- Stars -->
+  <circle cx="15" cy="18" r="1.5" fill="white" opacity="0.8"/>
+  <circle cx="28" cy="10" r="1" fill="white" opacity="0.7"/>
+  <circle cx="75" cy="14" r="1.5" fill="white" opacity="0.9"/>
+  <circle cx="88" cy="22" r="1" fill="white" opacity="0.7"/>
+  <circle cx="60" cy="8"  r="1.2" fill="white" opacity="0.8"/>
+  <!-- Moon -->
+  <circle cx="82" cy="22" r="10" fill="#fdf6d8"/>
+  <circle cx="87" cy="17" r="8"  fill="#07071a"/>
+  <!-- Ground -->
+  <rect x="0" y="80" width="100" height="20" rx="0" fill="#1a3318"/>
+  <!-- Fence posts -->
+  <rect x="42" y="56" width="5" height="26" rx="2" fill="#a06a3a"/>
+  <rect x="53" y="56" width="5" height="26" rx="2" fill="#a06a3a"/>
+  <!-- Fence rails -->
+  <rect x="42" y="64" width="16" height="4" rx="2" fill="#c08040"/>
+  <rect x="42" y="72" width="16" height="4" rx="2" fill="#c08040"/>
+  <!-- Sheep body -->
+  <ellipse cx="28" cy="68" rx="14" ry="10" fill="#e8e8e8"/>
+  <!-- Sheep head -->
+  <circle cx="40" cy="64" r="7" fill="#3a3028"/>
+  <!-- Sheep eye -->
+  <circle cx="43" cy="62" r="1.5" fill="white"/>
+  <!-- Sheep legs -->
+  <rect x="20" y="76" width="4" height="7" rx="1.5" fill="#3a3028"/>
+  <rect x="26" y="76" width="4" height="7" rx="1.5" fill="#3a3028"/>
+  <rect x="32" y="76" width="4" height="7" rx="1.5" fill="#3a3028"/>
+</svg>
