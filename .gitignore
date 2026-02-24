@@ -8,3 +8,8 @@ DerivedData/
 # Electron screensaver
 screensaver/node_modules/
 screensaver/dist/
+screensaver/package-lock.json
+
+# Native .saver (generated project + build artefacts)
+saver/CountingSheep.xcodeproj/
+saver/Info.plist
