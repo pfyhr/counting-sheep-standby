@@ -343,11 +343,20 @@
   const sheepAnim = document.getElementById('sheep');
   let count = 0;
 
-  // Each full animation cycle = one sheep jumped
-  sheepAnim.addEventListener('animationiteration', () => {
-    count++;
-    counterEl.textContent = `${count} ${count === 1 ? 'sheep' : 'sheep'}`;
-  });
+  // Fence crossing happens at 44% of the 4.5s cycle = 1980ms in.
+  // Fire the counter increment at that exact moment after each cycle start.
+  const CYCLE_MS = 4500;
+  const FENCE_MS = CYCLE_MS * 0.44; // 1980ms
+
+  function scheduleCount() {
+    setTimeout(() => {
+      count++;
+      counterEl.textContent = `${count} sheep`;
+    }, FENCE_MS);
+  }
+
+  sheepAnim.addEventListener('animationstart',     scheduleCount);
+  sheepAnim.addEventListener('animationiteration', scheduleCount);
 
   // ── Dim on tap (nightstand comfort) ──
   document.body.addEventListener('click', () => {
