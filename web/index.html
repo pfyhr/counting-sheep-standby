@@ -124,14 +124,18 @@
     .fence-rail.bottom { bottom: 18px; }
 
     /* ── Sheep ── */
-    #sheep {
+    #sheep-x {
       position: absolute;
+      bottom: 20%;
       width: 54px;
       height: 40px;
-      bottom: 20%;
-      /* animation drives left + bottom via custom properties */
-      animation: sheep-x 4.5s linear infinite,
-                 sheep-y 4.5s linear infinite;
+      animation: sheep-x 4.5s linear infinite;
+    }
+
+    #sheep {
+      width: 54px;
+      height: 40px;
+      animation: sheep-y 4.5s linear infinite;
     }
 
     /* Body */
@@ -211,7 +215,7 @@
       to   { transform: rotate(12deg); }
     }
 
-    /* Horizontal — constant speed, handles opacity for reset flash */
+    /* Horizontal — constant speed (linear), handles opacity for reset */
     @keyframes sheep-x {
       0%    { left: -60px; opacity: 1; }
       30%   { left: 40%; }
@@ -223,15 +227,25 @@
       100%  { left: -60px; opacity: 1; }
     }
 
-    /* Vertical — physics beziers derived from degree-elevated quadratic:
-       ease-out (rising):  cubic-bezier(0, 0.67, 0.33, 1)
-       ease-in  (falling): cubic-bezier(0.67, 0, 1, 0.33)        */
+    /* Vertical — GPU-accelerated translateY, physics beziers from
+       degree-elevated quadratic (constant gravity):
+         rising:  cubic-bezier(0, 0.67, 0.33, 1)
+         falling: cubic-bezier(0.67, 0, 1, 0.33)
+       Extra keyframes: anticipation crouch before launch,
+       small bounce on landing.                              */
     @keyframes sheep-y {
-      0%  { bottom: 20%; }
-      30% { bottom: 20%; animation-timing-function: cubic-bezier(0, 0.67, 0.33, 1); }
-      44% { bottom: 33%; animation-timing-function: cubic-bezier(0.67, 0, 1, 0.33); }
-      58% { bottom: 20%; }
-      100%{ bottom: 20%; }
+      0%   { transform: translateY(0); }
+      /* Anticipation — brief crouch */
+      28%  { transform: translateY(0);    animation-timing-function: ease-in; }
+      31%  { transform: translateY(6px);  animation-timing-function: cubic-bezier(0, 0.67, 0.33, 1); }
+      /* Rising — ease-out (fighting gravity) */
+      44%  { transform: translateY(-70px); animation-timing-function: cubic-bezier(0.67, 0, 1, 0.33); }
+      /* Falling — ease-in (gravity pulls down) */
+      57%  { transform: translateY(0);    animation-timing-function: ease-out; }
+      /* Landing bounce */
+      60%  { transform: translateY(-14px); animation-timing-function: ease-in; }
+      63%  { transform: translateY(0); }
+      100% { transform: translateY(0); }
     }
 
     /* ── Clock ── */
@@ -289,14 +303,16 @@
     <div class="fence-rail bottom"></div>
   </div>
 
-  <div id="sheep">
-    <div class="wool"></div>
-    <div class="head"></div>
-    <div class="legs">
-      <div class="leg"></div>
-      <div class="leg"></div>
-      <div class="leg"></div>
-      <div class="leg"></div>
+  <div id="sheep-x">
+    <div id="sheep">
+      <div class="wool"></div>
+      <div class="head"></div>
+      <div class="legs">
+        <div class="leg"></div>
+        <div class="leg"></div>
+        <div class="leg"></div>
+        <div class="leg"></div>
+      </div>
     </div>
   </div>
 
@@ -345,7 +361,7 @@
 
   // ── Sheep counter ──
   const counterEl = document.getElementById('counter');
-  const sheepAnim = document.getElementById('sheep');
+  const sheepAnim = document.getElementById('sheep-x');
   let count = 0;
 
   // Fence crossing happens at 44% of the 4.5s cycle = 1980ms in.
