@@ -434,15 +434,33 @@
 
     const goRight  = Math.random() < 0.5;
     const yPct     = 3 + Math.random() * 16;   // 3–19% from top — crosses moon area
-    const w        = 120 + Math.random() * 200;
-    const h        = 8  + Math.random() * 14;
-    const opacity  = 0.07 + Math.random() * 0.11;
+    const scale   = 0.6 + Math.random() * 0.9;
+    const opacity = 0.10 + Math.random() * 0.13;
+    const col     = `rgba(210,225,255,${opacity.toFixed(2)})`;
 
+    // Flat-bottom three-bump cloud (Super Mario style), blurred
     const cloud = document.createElement('div');
+    const bw = Math.round(140 * scale);
+    const bh = Math.round(38  * scale);
     cloud.style.cssText =
-      `position:absolute;top:${yPct}%;width:${w}px;height:${h}px;` +
-      `background:rgba(210,225,255,${opacity.toFixed(2)});` +
-      `border-radius:50%;filter:blur(14px);pointer-events:none;`;
+      `position:absolute;top:${yPct}%;width:${bw}px;height:${bh}px;` +
+      `filter:blur(${Math.round(10 * scale)}px);pointer-events:none;`;
+
+    // Three overlapping circles on top + a flat rectangular base
+    const base = document.createElement('div');
+    base.style.cssText =
+      `position:absolute;bottom:0;left:0;right:0;height:55%;` +
+      `background:${col};border-radius:3px 3px 6px 6px;`;
+
+    [[15, 48], [45, 58], [72, 48]].forEach(([cx, r]) => {
+      const bump = document.createElement('div');
+      bump.style.cssText =
+        `position:absolute;bottom:40%;left:${Math.round(cx/100*bw - r*scale)}px;` +
+        `width:${Math.round(r*2*scale)}px;height:${Math.round(r*2*scale)}px;` +
+        `background:${col};border-radius:50%;`;
+      cloud.appendChild(bump);
+    });
+    cloud.appendChild(base);
 
     // Insert just after moon so it paints in front of it but behind ground/sheep
     moonEl.parentNode.insertBefore(cloud, moonEl.nextSibling);
@@ -456,6 +474,24 @@
     ).onfinish = () => cloud.remove();
   }
   spawnMoonCloud();
+
+  // ── Moon arc ──
+  // 25-minute cycle; random phase so the moon starts at a different spot each load
+  const MOON_CYCLE = 25 * 60 * 1000;
+  const moonOffset = Math.random() * MOON_CYCLE;
+
+  function updateMoonPos() {
+    const frac = ((Date.now() + moonOffset) % MOON_CYCLE) / MOON_CYCLE;
+    // x: left edge 3% → right edge 86% (linear)
+    // y: inverted sine arc — low (~26%) at horizon edges, high (~6%) at zenith
+    const x = 3  + frac * 83;
+    const y = 26 - 20 * Math.sin(Math.PI * frac);
+    moonEl.style.left  = x + '%';
+    moonEl.style.top   = y + '%';
+    moonEl.style.right = 'auto';   // override the CSS right:8% fallback
+  }
+  updateMoonPos();
+  setInterval(updateMoonPos, 500);
 
   // ── Clock ──
   const timeEl = document.getElementById('time');
