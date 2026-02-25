@@ -722,20 +722,29 @@
         const tbp   = wrap.querySelector('.tbp');
         const tbc   = wrap.querySelector('.tbc');
 
-        // Beam height reaches the ground
-        const beamH = Math.max(80, (0.80 - yPct / 100) * window.innerHeight);
-        const svgH  = Math.round(beamH / scale);
+        // Beam origin Y in screen coords (UFO disc bottom ≈ SVG y=34)
+        const ufoCY   = yPct / 100 * window.innerHeight + 34 * scale;
+        const buildGY = 0.78 * window.innerHeight;   // ground level screen Y
 
-        // RAF loop — continuously re-aim beam as UFO moves ("target locked")
+        // RAF loop — rotate cone so its tip always points at the building cluster
         let trackRAF;
+        const HALF_ANGLE = 6 * Math.PI / 180; // cone half-angle
         const trackBeam = () => {
           if (!document.body.contains(wrap)) { cancelAnimationFrame(trackRAF); return; }
-          const frac = Math.min(1, (performance.now() - wrapStartTime) / dur);
-          const ufoCX = ufoCX0 + (ufoCX1 - ufoCX0) * frac;
-          const dxSVG = (buildX - ufoCX) / scale * (goRight ? 1 : -1);
-          const bCx   = 40 + dxSVG;
-          tbp.setAttribute('points', `35,34 45,34 ${bCx+35},${34+svgH} ${bCx-35},${34+svgH}`);
-          tbc.setAttribute('points', `37,34 43,34 ${bCx+20},${34+svgH} ${bCx-20},${34+svgH}`);
+          const frac   = Math.min(1, (performance.now() - wrapStartTime) / dur);
+          const ufoCX  = ufoCX0 + (ufoCX1 - ufoCX0) * frac;
+          const dx     = buildX - ufoCX;
+          const dy     = buildGY - ufoCY;
+          // Angle from vertical (atan2 with args swapped gives bearing from Y-axis)
+          const theta  = Math.atan2(dx, dy) * 180 / Math.PI;
+          // Beam length = actual distance → naturally shortens when directly below
+          const svgLen = Math.sqrt(dx * dx + dy * dy) / scale;
+          const coneW  = svgLen * Math.tan(HALF_ANGLE);  // proportional width at tip
+          tbeam.setAttribute('transform', `rotate(${theta.toFixed(2)}, 40, 34)`);
+          tbp.setAttribute('points',
+            `39,34 41,34 ${40+coneW},${34+svgLen} ${40-coneW},${34+svgLen}`);
+          tbc.setAttribute('points',
+            `39.5,34 40.5,34 ${40+coneW*0.45},${34+svgLen} ${40-coneW*0.45},${34+svgLen}`);
           trackRAF = requestAnimationFrame(trackBeam);
         };
         trackRAF = requestAnimationFrame(trackBeam);
