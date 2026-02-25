@@ -264,6 +264,51 @@
       font-size: clamp(11px, 2.5vw, 15px);
       letter-spacing: 0.06em;
       white-space: nowrap;
+      cursor: default;
+      transition: color 0.2s;
+    }
+    #counter:hover { color: rgba(255,255,255,0.75); }
+
+    /* ── Sheep personality ── */
+    @keyframes sheep-blink {
+      0%, 88%, 100% { transform: scaleY(1);    }
+      91%, 95%      { transform: scaleY(0.08); }
+    }
+    #sheep .head::after {
+      transform-origin: center;
+      animation: sheep-blink 3.8s ease-in-out infinite;
+    }
+
+    /* Dark / black sheep variant */
+    #sheep.dark .wool           { background: radial-gradient(ellipse at 40% 40%, #4a4a56, #2e2e3a); }
+    #sheep.dark .wool::before,
+    #sheep.dark .wool::after    { background: #3e3e4a; }
+
+    /* Baa speech bubble */
+    .baa-bubble {
+      position: absolute;
+      bottom: calc(100% + 4px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.92);
+      color: #333;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 7px;
+      border-radius: 8px;
+      white-space: nowrap;
+      pointer-events: none;
+      letter-spacing: 0.03em;
+    }
+    .baa-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: rgba(255,255,255,0.92);
+      border-bottom: 0;
     }
 
     /* Dim on tap (nightstand mode) */
@@ -362,16 +407,43 @@
   setInterval(tick, 1000);
 
   // ── Sheep animation + counter ──
-  const counterEl = document.getElementById('counter');
-  const sheepX    = document.getElementById('sheep-x');
+  const counterEl  = document.getElementById('counter');
+  const sheepX     = document.getElementById('sheep-x');
   const sheepInner = document.getElementById('sheep');
-  let count = 0;
+  let count     = 0;
+  let flipCount = 0;
+  let ufoCount  = 0;
+  let hoveringCounter = false;
+
+  function updateCounter() {
+    if (hoveringCounter) return;
+    counterEl.textContent = `${count} sheep`;
+  }
+
+  counterEl.addEventListener('mouseover', () => {
+    hoveringCounter = true;
+    const f = flipCount, u = ufoCount;
+    counterEl.textContent =
+      `${f} backflip${f !== 1 ? 's' : ''} · ${u} UFO${u !== 1 ? 's' : ''}`;
+  });
+  counterEl.addEventListener('mouseout', () => {
+    hoveringCounter = false;
+    updateCounter();
+  });
 
   const CYCLE  = 4500;
   const RISE   = 'cubic-bezier(0, 0.67, 0.33, 1)';
   const FALL   = 'cubic-bezier(0.67, 0, 1, 0.33)';
 
   function runSheep() {
+    // Dark sheep ~12% of the time
+    sheepInner.classList.toggle('dark', Math.random() < 0.12);
+
+    // Subtle size variation — grows from feet
+    const sz = (0.85 + Math.random() * 0.30).toFixed(2);
+    sheepX.style.transform      = `scale(${sz})`;
+    sheepX.style.transformOrigin = 'bottom left';
+
     // Randomise jump height: 55–120px
     const h = Math.round(55 + Math.random() * 65);
     // 5% chance of a backflip
@@ -416,10 +488,29 @@
       { offset: 1.0,  transform: T('0',    rd)                          },
     ], { duration: CYCLE, easing: 'linear', fill: 'forwards' });
 
+    // Occasional baa bubble during walk-in (~40% of sheep)
+    if (Math.random() < 0.40) {
+      const texts = ['baa!', 'baa!', 'baaah!', 'zzz', '...'];
+      const txt   = texts[Math.floor(Math.random() * texts.length)];
+      setTimeout(() => {
+        const bub = document.createElement('div');
+        bub.className   = 'baa-bubble';
+        bub.textContent = txt;
+        sheepX.appendChild(bub);
+        bub.animate([
+          { opacity: 0, transform: 'translateX(-50%) translateY(0)    scale(0.6)' },
+          { opacity: 1, transform: 'translateX(-50%) translateY(-8px)  scale(1)',   offset: 0.15 },
+          { opacity: 1, transform: 'translateX(-50%) translateY(-14px) scale(1)',   offset: 0.70 },
+          { opacity: 0, transform: 'translateX(-50%) translateY(-26px) scale(0.9)' },
+        ], { duration: 1800, easing: 'ease-out' }).onfinish = () => bub.remove();
+      }, CYCLE * (0.06 + Math.random() * 0.16));
+    }
+
     // Count exactly when sheep clears the fence (44% = apex)
     setTimeout(() => {
       count++;
-      counterEl.textContent = `${count} sheep`;
+      if (flip) flipCount++;
+      updateCounter();
     }, CYCLE * 0.44);
 
     // On finish: cancel fill, restart with new random values
@@ -475,6 +566,7 @@
     scheduleFlyby(); // schedule next independently so flybys can occasionally overlap
 
     const isUFO   = Math.random() < 0.15;
+    if (isUFO) ufoCount++;
     const goRight = Math.random() < 0.5;
     const yPct    = 5  + Math.random() * 43;          // 5–48% from top (sky only)
     const bw      = isUFO ? 80 : 96;
