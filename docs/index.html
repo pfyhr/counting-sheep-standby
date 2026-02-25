@@ -55,26 +55,11 @@
       height: 56px;
     }
     @keyframes moon-breathe {
-      from { box-shadow: 0 0 18px 4px rgba(253,246,200,0.18); }
-      to   { box-shadow: 0 0 54px 20px rgba(253,246,200,0.42); }
+      from { filter: drop-shadow(0 0 6px  rgba(253,246,200,0.22)); }
+      to   { filter: drop-shadow(0 0 22px rgba(253,246,200,0.55)); }
     }
-    #moon .disc {
-      width: 56px;
-      height: 56px;
-      background: #fdf6d8;
-      border-radius: 50%;
-      box-shadow: 0 0 24px 6px rgba(253,246,200,0.25);
-      position: relative;
+    #moon {
       animation: moon-breathe 11s ease-in-out infinite alternate;
-    }
-    #moon .bite {
-      position: absolute;
-      top: -6px;
-      right: -6px;
-      width: 44px;
-      height: 44px;
-      background: #0d0d2e;
-      border-radius: 50%;
     }
 
     /* ── Ground ── */
@@ -376,7 +361,19 @@
 <body>
 <div id="scene">
   <div id="sky"></div>
-  <div id="moon"><div class="disc"><div class="bite"></div></div></div>
+  <div id="moon">
+    <svg width="56" height="56" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <mask id="moon-phase">
+          <circle cx="28" cy="28" r="28" fill="white"/>
+          <!-- Shadow circle — same radius as disc so crescent/gibbous shapes are correct.
+               JS moves its cx to cycle through new → crescent → quarter → gibbous → full. -->
+          <circle id="moon-shadow" cx="28" cy="28" r="28" fill="black"/>
+        </mask>
+      </defs>
+      <circle cx="28" cy="28" r="28" fill="#fdf6d8" mask="url(#moon-phase)"/>
+    </svg>
+  </div>
   <div id="ground"></div>
   <div id="buildings"></div>
 
@@ -471,23 +468,44 @@
   }
   spawnMoonCloud();
 
-  // ── Moon arc ──
-  // 25-minute cycle; random phase so the moon starts at a different spot each load
-  const MOON_CYCLE = 25 * 60 * 1000;
-  const moonOffset = Math.random() * MOON_CYCLE;
+  // ── Moon arc + phase ──
+  const moonShadowEl  = document.getElementById('moon-shadow');
+
+  const MOON_CYCLE    = 25 * 60 * 1000;          // 25-min arc cycle
+  const moonOffset    = Math.random() * MOON_CYCLE;
+
+  // Lunar phase cycle: random start each load, full cycle in 4 hours.
+  // At that rate a full night's session shows several complete phases.
+  const LUNAR_CYCLE   = 4 * 60 * 60 * 1000;
+  const moonPhaseStart = Math.random();
+
+  // Equal-radius (28px) shadow circle:
+  //   Waxing (phase 0→0.5): shadow slides left  28 → -28  (right side lit)
+  //   Waning (phase 0.5→1): shadow slides right 84 → 28   (left side lit)
+  // Both extremes put the shadow fully off the disc → full moon.
+  function moonShadowX(phase) {
+    return phase <= 0.5
+      ? 28 - (phase / 0.5) * 56
+      : 84 - ((phase - 0.5) / 0.5) * 56;
+  }
 
   function updateMoonPos() {
-    const frac = ((Date.now() + moonOffset) % MOON_CYCLE) / MOON_CYCLE;
-    // x: left edge 3% → right edge 86% (linear)
-    // y: inverted sine arc — low (~26%) at horizon edges, high (~6%) at zenith
+    const frac  = ((Date.now() + moonOffset) % MOON_CYCLE) / MOON_CYCLE;
     const x = 3  + frac * 83;
     const y = 26 - 20 * Math.sin(Math.PI * frac);
     moonEl.style.left  = x + '%';
     moonEl.style.top   = y + '%';
-    moonEl.style.right = 'auto';   // override the CSS right:8% fallback
+    moonEl.style.right = 'auto';
+
+    const phase = (moonPhaseStart + Date.now() / LUNAR_CYCLE) % 1;
+    moonShadowEl.setAttribute('cx', moonShadowX(phase).toFixed(2));
   }
-  updateMoonPos();
-  setInterval(updateMoonPos, 500);
+
+  // RAF for smooth sub-pixel arc motion (no more 500 ms jumps)
+  (function moonLoop() {
+    updateMoonPos();
+    requestAnimationFrame(moonLoop);
+  })();
 
   // ── Star arc (sidereal rate) ──
   // Stars complete a full arc in one sidereal day (23h 56m 4s).
