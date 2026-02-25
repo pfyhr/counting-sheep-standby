@@ -311,6 +311,33 @@
       border-bottom: 0;
     }
 
+    /* ── Civilization buildings ── */
+    #buildings {
+      position: absolute;
+      bottom: 22%;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      pointer-events: none;
+    }
+    .pyramid {
+      flex-shrink: 0;
+      transform-origin: bottom center;
+      background: linear-gradient(160deg, #d4a84b 30%, #9a7028 100%);
+      clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+      opacity: 0;
+    }
+    .building {
+      flex-shrink: 0;
+      transform-origin: bottom center;
+      background:
+        radial-gradient(circle, rgba(255,230,100,0.5) 1px, transparent 1px) 4px 5px / 5px 7px,
+        linear-gradient(to bottom, #384858 0%, #283040 100%);
+      opacity: 0;
+    }
+
     /* Dim on tap (nightstand mode) */
     body.dimmed #scene { filter: brightness(0.35); }
     body.dimmed { cursor: none; }
@@ -335,6 +362,10 @@
       from { transform: translateY(-4px) }
       to   { transform: translateY( 4px) }
     }
+    @keyframes beam-pulse {
+      from { opacity: 0.6 }
+      to   { opacity: 1   }
+    }
   </style>
 </head>
 <body>
@@ -342,6 +373,7 @@
   <div id="sky"></div>
   <div id="moon"><div class="disc"><div class="bite"></div></div></div>
   <div id="ground"></div>
+  <div id="buildings"></div>
 
   <div id="fence">
     <div class="fence-post left"></div>
@@ -548,6 +580,11 @@
         <stop offset="100%" stop-color="#687480"/>
       </radialGradient>
     </defs>
+    <!-- Tractor beam (hidden until activated) -->
+    <g class="tbeam" style="opacity:0">
+      <polygon class="tbp" style="animation:beam-pulse 0.7s ease-in-out infinite alternate"/>
+      <polygon class="tbc" style="animation:beam-pulse 0.7s ease-in-out infinite alternate 0.35s"/>
+    </g>
     <ellipse cx="40" cy="34" rx="32" ry="7" fill="rgba(80,220,140,0.1)"/>
     <ellipse cx="40" cy="28" rx="36" ry="10" fill="url(#ug)"/>
     <path d="M16,28 C16,14 28,8 40,8 C52,8 64,14 64,28Z" fill="#8090a2"/>
@@ -558,12 +595,69 @@
     <circle cx="67" cy="27" r="3" style="animation:ufo-cycle 2s linear infinite 1.6s"/>
   </svg>`;
 
+  // ── Flyby concurrency cap ──
+  let activeFlybyCount = 0;
+  const MAX_FLYBYS = 3;
+
+  // ── Civilization ──
+  // States: 0 = empty (build ancient next)  1 = pyramids up (raze next)
+  //         2 = empty (build modern next)   3 = modern up  (raze next)
+  let civState = 0;
+  let civBusy  = false;
+  let buildX   = 0;   // screen-X centre of current building cluster
+  const buildingsEl = document.getElementById('buildings');
+
+  function buildAncient() {
+    buildingsEl.innerHTML = `
+      <div class="pyramid" style="width:44px;height:36px"></div>
+      <div class="pyramid" style="width:64px;height:52px"></div>
+      <div class="pyramid" style="width:52px;height:42px"></div>
+    `;
+    buildingsEl.querySelectorAll('.pyramid').forEach((el, i) =>
+      el.animate(
+        [{ opacity:0, transform:'scaleY(0)' }, { opacity:0.85, transform:'scaleY(1)' }],
+        { duration:900, delay:i*200, easing:'ease-out', fill:'forwards' }
+      )
+    );
+  }
+
+  function buildModern() {
+    buildingsEl.innerHTML = `
+      <div class="building" style="width:18px;height:88px"></div>
+      <div class="building" style="width:22px;height:128px"></div>
+      <div class="building" style="width:16px;height:100px"></div>
+      <div class="building" style="width:20px;height:114px"></div>
+    `;
+    buildingsEl.querySelectorAll('.building').forEach((el, i) =>
+      el.animate(
+        [{ opacity:0, transform:'scaleY(0)' }, { opacity:0.9, transform:'scaleY(1)' }],
+        { duration:650, delay:i*140, easing:'ease-out', fill:'forwards' }
+      )
+    );
+  }
+
+  function razeBuildings(done) {
+    const els = [...buildingsEl.children];
+    if (!els.length) { done(); return; }
+    els.forEach((el, i) => {
+      const a = el.animate([
+        { filter:'brightness(1)',   transform:'scaleY(1)    scaleX(1)'   },
+        { filter:'brightness(5)',   transform:'scaleY(1)    scaleX(1.1)', offset:0.25 },
+        { filter:'brightness(0.5)', transform:'scaleY(0.2)  scaleX(0.8)', opacity:0.3 },
+        { filter:'brightness(0)',   transform:'scaleY(0)    scaleX(0)',   opacity:0   },
+      ], { duration:750, delay:i*110, easing:'ease-in', fill:'forwards' });
+      if (i === els.length - 1) a.onfinish = () => { buildingsEl.innerHTML = ''; done(); };
+    });
+  }
+
   function scheduleFlyby() {
     setTimeout(doFlyby, 12000 + Math.random() * 28000);
   }
 
   function doFlyby() {
     scheduleFlyby(); // schedule next independently so flybys can occasionally overlap
+    if (activeFlybyCount >= MAX_FLYBYS) return;
+    activeFlybyCount++;
 
     const isUFO   = Math.random() < 0.15;
     if (isUFO) ufoCount++;
@@ -592,10 +686,86 @@
     const sx  = goRight ? `-${off}px` : `calc(100vw + ${off}px)`;
     const ex  = goRight ? `calc(100vw + ${off}px)` : `-${off}px`;
 
+    const wrapStartTime = performance.now();
     wrap.animate(
       [{ transform: `translateX(${sx})` }, { transform: `translateX(${ex})` }],
       { duration: dur, easing: 'linear' }
-    ).onfinish = () => wrap.remove();
+    ).onfinish = () => { wrap.remove(); activeFlybyCount--; };
+
+    // UFO tractor beam — target-locked on the building cluster
+    if (isUFO) {
+      // For a new ancient cycle pick a fresh off-centre location now,
+      // so we can aim the beam before the setTimeout fires.
+      const targetBuildX = (civState === 0)
+        ? window.innerWidth * (0.22 + Math.random() * 0.56)
+        : (buildX || window.innerWidth * 0.5);
+
+      // Work out when the UFO centre passes directly over the target,
+      // then fire the beam ~1.2 s before that moment.
+      const ufoCX0 = (goRight ? -off : window.innerWidth + off) + (bw * scale) / 2;
+      const ufoCX1 = (goRight ? window.innerWidth + off : -off)  + (bw * scale) / 2;
+      const timeOver  = (targetBuildX - ufoCX0) / (ufoCX1 - ufoCX0) * dur;
+      const beamDelay = Math.max(800, Math.min(dur * 0.78, timeOver - 1200));
+
+      setTimeout(() => {
+        if (!document.body.contains(wrap) || civBusy) return;
+        civBusy = true;
+
+        // Commit location for new ancient cycle
+        if (civState === 0) {
+          buildX = targetBuildX;
+          buildingsEl.style.left      = buildX + 'px';
+          buildingsEl.style.transform = 'translateX(-50%)';
+        }
+
+        const tbeam = wrap.querySelector('.tbeam');
+        const tbp   = wrap.querySelector('.tbp');
+        const tbc   = wrap.querySelector('.tbc');
+
+        // Beam height reaches the ground
+        const beamH = Math.max(80, (0.80 - yPct / 100) * window.innerHeight);
+        const svgH  = Math.round(beamH / scale);
+
+        // RAF loop — continuously re-aim beam as UFO moves ("target locked")
+        let trackRAF;
+        const trackBeam = () => {
+          if (!document.body.contains(wrap)) { cancelAnimationFrame(trackRAF); return; }
+          const frac = Math.min(1, (performance.now() - wrapStartTime) / dur);
+          const ufoCX = ufoCX0 + (ufoCX1 - ufoCX0) * frac;
+          const dxSVG = (buildX - ufoCX) / scale * (goRight ? 1 : -1);
+          const bCx   = 40 + dxSVG;
+          tbp.setAttribute('points', `35,34 45,34 ${bCx+35},${34+svgH} ${bCx-35},${34+svgH}`);
+          tbc.setAttribute('points', `37,34 43,34 ${bCx+20},${34+svgH} ${bCx-20},${34+svgH}`);
+          trackRAF = requestAnimationFrame(trackBeam);
+        };
+        trackRAF = requestAnimationFrame(trackBeam);
+        setTimeout(() => cancelAnimationFrame(trackRAF), 3500);
+
+        // Green for building, orange-red for razing
+        const building = civState === 0 || civState === 2;
+        const rgb = building ? '80,255,140' : '255,90,50';
+        tbp.setAttribute('fill', `rgba(${rgb},0.12)`);
+        tbc.setAttribute('fill', `rgba(${rgb},0.07)`);
+
+        tbeam.animate([{ opacity:0 }, { opacity:1 }], { duration:500, fill:'forwards' });
+
+        // Trigger civ action once the beam has lit up (~700 ms in)
+        const snap = civState;
+        setTimeout(() => {
+          if (!document.body.contains(wrap)) { civBusy = false; return; }
+          if      (snap === 0) { civState = 1; buildAncient(); setTimeout(() => civBusy = false, 1500); }
+          else if (snap === 1)   razeBuildings(() => { civState = 2; civBusy = false; });
+          else if (snap === 2) { civState = 3; buildModern();  setTimeout(() => civBusy = false, 1500); }
+          else if (snap === 3)   razeBuildings(() => { civState = 0; civBusy = false; });
+        }, 700);
+
+        // Beam fades out
+        setTimeout(() => {
+          if (!document.body.contains(wrap)) return;
+          tbeam.animate([{ opacity:1 }, { opacity:0 }], { duration:600, fill:'forwards' });
+        }, 2800);
+      }, beamDelay);
+    }
   }
 
   scheduleFlyby();
