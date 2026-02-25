@@ -489,6 +489,23 @@
   updateMoonPos();
   setInterval(updateMoonPos, 500);
 
+  // ── Star arc (sidereal rate) ──
+  // Stars complete a full arc in one sidereal day (23h 56m 4s).
+  // The moon takes a full lunar day (24h 50m 28s) — so stars are faster
+  // by a factor of 86164/89428 ≈ 0.9635. Same phase offset as the moon.
+  const STAR_CYCLE = MOON_CYCLE * (86164 / 89428);
+  const starEls = [...document.querySelectorAll('.star')];
+  const starX0  = starEls.map(el => parseFloat(el.style.left));
+
+  function updateStars() {
+    const drift = (((Date.now() + moonOffset) % STAR_CYCLE) / STAR_CYCLE) * 100;
+    starEls.forEach((el, i) => {
+      el.style.left = ((starX0[i] + drift) % 100) + '%';
+    });
+  }
+  updateStars();
+  setInterval(updateStars, 500);
+
   // ── Clock ──
   const timeEl = document.getElementById('time');
   const dateEl = document.getElementById('date');
