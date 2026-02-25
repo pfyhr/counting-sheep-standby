@@ -434,40 +434,36 @@
 
     const goRight  = Math.random() < 0.5;
     const yPct     = 3 + Math.random() * 16;   // 3–19% from top — crosses moon area
-    const scale   = 0.6 + Math.random() * 0.9;
-    const opacity = 0.10 + Math.random() * 0.13;
-    const col     = `rgba(210,225,255,${opacity.toFixed(2)})`;
+    const scale   = 0.5 + Math.random() * 0.9;
+    const opacity = 0.13 + Math.random() * 0.14;
+    const cw      = Math.round(160 * scale);
+    const ch      = Math.round(64  * scale);
+    const blur    = (5 + 4 * scale).toFixed(1);
 
-    // Flat-bottom three-bump cloud (Super Mario style), blurred
+    // SVG flat-bottom three-bump cloud, blurred wrapper for softness
     const cloud = document.createElement('div');
-    const bw = Math.round(140 * scale);
-    const bh = Math.round(38  * scale);
     cloud.style.cssText =
-      `position:absolute;top:${yPct}%;width:${bw}px;height:${bh}px;` +
-      `filter:blur(${Math.round(10 * scale)}px);pointer-events:none;`;
+      `position:absolute;top:${yPct}%;width:${cw}px;height:${ch}px;` +
+      `filter:blur(${blur}px);pointer-events:none;opacity:${opacity.toFixed(2)};`;
 
-    // Three overlapping circles on top + a flat rectangular base
-    const base = document.createElement('div');
-    base.style.cssText =
-      `position:absolute;bottom:0;left:0;right:0;height:55%;` +
-      `background:${col};border-radius:3px 3px 6px 6px;`;
-
-    [[15, 48], [45, 58], [72, 48]].forEach(([cx, r]) => {
-      const bump = document.createElement('div');
-      bump.style.cssText =
-        `position:absolute;bottom:40%;left:${Math.round(cx/100*bw - r*scale)}px;` +
-        `width:${Math.round(r*2*scale)}px;height:${Math.round(r*2*scale)}px;` +
-        `background:${col};border-radius:50%;`;
-      cloud.appendChild(bump);
-    });
-    cloud.appendChild(base);
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 120 60');
+    svg.setAttribute('width',  cw);
+    svg.setAttribute('height', ch);
+    // Flat base + three overlapping circles of varying height
+    svg.innerHTML =
+      `<rect x="0" y="36" width="120" height="24" rx="5" fill="white"/>` +
+      `<circle cx="22" cy="36" r="19" fill="white"/>` +
+      `<circle cx="58" cy="24" r="25" fill="white"/>` +
+      `<circle cx="96" cy="36" r="19" fill="white"/>`;
+    cloud.appendChild(svg);
 
     // Insert just after moon so it paints in front of it but behind ground/sheep
     moonEl.parentNode.insertBefore(cloud, moonEl.nextSibling);
 
     const dur = 40000 + Math.random() * 50000;   // 40–90 s drift
-    const sx  = goRight ? '-280px' : 'calc(100vw + 280px)';
-    const ex  = goRight ? 'calc(100vw + 280px)' : '-280px';
+    const sx  = goRight ? `-${cw + 40}px` : `calc(100vw + ${cw + 40}px)`;
+    const ex  = goRight ? `calc(100vw + ${cw + 40}px)` : `-${cw + 40}px`;
     cloud.animate(
       [{ transform: `translateX(${sx})` }, { transform: `translateX(${ex})` }],
       { duration: dur, easing: 'linear' }
