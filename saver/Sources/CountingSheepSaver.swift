@@ -19,11 +19,15 @@ class CountingSheepSaver: ScreenSaverView {
     private func setup() {
         animationTimeInterval = 1.0 / 30.0
 
+        // WKWebView requires a layer-backed view hierarchy to render.
+        wantsLayer = true
+
         let config = WKWebViewConfiguration()
         config.mediaTypesRequiringUserActionForPlayback = []
 
         let wv = WKWebView(frame: bounds, configuration: config)
         wv.autoresizingMask = [.width, .height]
+        wv.wantsLayer = true
         addSubview(wv)
         webView = wv
 
