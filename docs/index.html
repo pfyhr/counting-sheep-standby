@@ -54,6 +54,10 @@
       width: 56px;
       height: 56px;
     }
+    @keyframes moon-breathe {
+      from { box-shadow: 0 0 18px 4px rgba(253,246,200,0.18); }
+      to   { box-shadow: 0 0 54px 20px rgba(253,246,200,0.42); }
+    }
     #moon .disc {
       width: 56px;
       height: 56px;
@@ -61,6 +65,7 @@
       border-radius: 50%;
       box-shadow: 0 0 24px 6px rgba(253,246,200,0.25);
       position: relative;
+      animation: moon-breathe 11s ease-in-out infinite alternate;
     }
     #moon .bite {
       position: absolute;
@@ -421,6 +426,36 @@
     el.style.cssText = `left:${x}%;top:${y}%;width:${size}px;height:${size}px;--dur:${dur}s;--delay:${delay}s`;
     sky.appendChild(el);
   });
+
+  // ── Moon cloud wisps ──
+  const moonEl = document.getElementById('moon');
+  function spawnMoonCloud() {
+    setTimeout(spawnMoonCloud, 22000 + Math.random() * 55000);
+
+    const goRight  = Math.random() < 0.5;
+    const yPct     = 3 + Math.random() * 16;   // 3–19% from top — crosses moon area
+    const w        = 120 + Math.random() * 200;
+    const h        = 8  + Math.random() * 14;
+    const opacity  = 0.07 + Math.random() * 0.11;
+
+    const cloud = document.createElement('div');
+    cloud.style.cssText =
+      `position:absolute;top:${yPct}%;width:${w}px;height:${h}px;` +
+      `background:rgba(210,225,255,${opacity.toFixed(2)});` +
+      `border-radius:50%;filter:blur(14px);pointer-events:none;`;
+
+    // Insert just after moon so it paints in front of it but behind ground/sheep
+    moonEl.parentNode.insertBefore(cloud, moonEl.nextSibling);
+
+    const dur = 40000 + Math.random() * 50000;   // 40–90 s drift
+    const sx  = goRight ? '-280px' : 'calc(100vw + 280px)';
+    const ex  = goRight ? 'calc(100vw + 280px)' : '-280px';
+    cloud.animate(
+      [{ transform: `translateX(${sx})` }, { transform: `translateX(${ex})` }],
+      { duration: dur, easing: 'linear' }
+    ).onfinish = () => cloud.remove();
+  }
+  spawnMoonCloud();
 
   // ── Clock ──
   const timeEl = document.getElementById('time');
