@@ -269,6 +269,27 @@
     /* Dim on tap (nightstand mode) */
     body.dimmed #scene { filter: brightness(0.35); }
     body.dimmed { cursor: none; }
+
+    /* ── Flybys ── */
+    @keyframes nl-blink {
+      0%,45%  { opacity: 1    }
+      50%,100%{ opacity: 0.12 }
+    }
+    @keyframes strobe {
+      0%,5%   { opacity: 1 }
+      6%,100% { opacity: 0 }
+    }
+    @keyframes ufo-cycle {
+      0%   { fill: #ff4477 }
+      25%  { fill: #44aaff }
+      50%  { fill: #44ffaa }
+      75%  { fill: #ffcc33 }
+      100% { fill: #ff4477 }
+    }
+    @keyframes ufo-bob {
+      from { transform: translateY(-4px) }
+      to   { transform: translateY( 4px) }
+    }
   </style>
 </head>
 <body>
@@ -415,6 +436,77 @@
   document.body.addEventListener('click', () => {
     document.body.classList.toggle('dimmed');
   });
+
+  // ── Flybys ──
+  const PLANE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 28" style="overflow:visible;display:block">
+    <path d="M6,13 C6,8 13,7 20,7 L78,7 C86,7 91,10 92,13 C91,16 86,19 78,19 L20,19 C13,19 6,18 6,13Z" fill="#555572"/>
+    <path d="M52,17 L40,18 L15,27 L22,27Z" fill="#484868"/>
+    <ellipse cx="34" cy="26" rx="9" ry="3" fill="#3c3c5c"/>
+    <path d="M9,7 L7,1 L19,7Z" fill="#484868"/>
+    <path d="M7,14 L21,14 L17,21 L6,19Z" fill="#484868"/>
+    <rect x="53" y="9" width="28" height="6" rx="3" fill="rgba(160,200,255,0.3)"/>
+    <circle cx="91" cy="13" r="2.2" fill="#00dd55" style="animation:nl-blink 1.1s step-end infinite"/>
+    <circle cx="15" cy="27" r="2"   fill="#ff3333" style="animation:nl-blink 1.1s step-end infinite 0.55s"/>
+    <circle cx="7"  cy="13" r="1.5" fill="white"   style="animation:strobe 2.4s step-end infinite"/>
+  </svg>`;
+
+  const UFO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 44" style="overflow:visible;display:block;animation:ufo-bob 2s ease-in-out infinite alternate">
+    <defs>
+      <radialGradient id="ug" cx="45%" cy="35%" r="65%">
+        <stop offset="0%" stop-color="#b0bcc8"/>
+        <stop offset="100%" stop-color="#687480"/>
+      </radialGradient>
+    </defs>
+    <ellipse cx="40" cy="34" rx="32" ry="7" fill="rgba(80,220,140,0.1)"/>
+    <ellipse cx="40" cy="28" rx="36" ry="10" fill="url(#ug)"/>
+    <path d="M16,28 C16,14 28,8 40,8 C52,8 64,14 64,28Z" fill="#8090a2"/>
+    <circle cx="13" cy="27" r="3" style="animation:ufo-cycle 2s linear infinite 0s"/>
+    <circle cx="25" cy="34" r="3" style="animation:ufo-cycle 2s linear infinite 0.4s"/>
+    <circle cx="40" cy="36" r="3" style="animation:ufo-cycle 2s linear infinite 0.8s"/>
+    <circle cx="55" cy="34" r="3" style="animation:ufo-cycle 2s linear infinite 1.2s"/>
+    <circle cx="67" cy="27" r="3" style="animation:ufo-cycle 2s linear infinite 1.6s"/>
+  </svg>`;
+
+  function scheduleFlyby() {
+    setTimeout(doFlyby, 12000 + Math.random() * 28000);
+  }
+
+  function doFlyby() {
+    scheduleFlyby(); // schedule next independently so flybys can occasionally overlap
+
+    const isUFO   = Math.random() < 0.15;
+    const goRight = Math.random() < 0.5;
+    const yPct    = 5  + Math.random() * 43;          // 5–48% from top (sky only)
+    const bw      = isUFO ? 80 : 96;
+    const bh      = isUFO ? 44 : 28;
+    const scale   = 0.55 + (yPct / 48) * 0.65;        // lower = larger (closer)
+    const dur     = Math.round(15000 - scale * 7000 + Math.random() * 4000);
+
+    const wrap  = document.createElement('div');
+    wrap.style.cssText = `position:absolute;top:${yPct}%;pointer-events:none;z-index:5;`;
+
+    const inner = document.createElement('div');
+    inner.innerHTML = isUFO ? UFO_SVG : PLANE_SVG;
+    const svg = inner.firstElementChild;
+    svg.setAttribute('width',  Math.round(bw * scale));
+    svg.setAttribute('height', Math.round(bh * scale));
+    // Flip the airplane (but not the symmetric UFO) when flying left
+    if (!goRight && !isUFO) inner.style.transform = 'scaleX(-1)';
+
+    wrap.appendChild(inner);
+    document.getElementById('scene').appendChild(wrap);
+
+    const off = Math.round(bw * scale) + 30;
+    const sx  = goRight ? `-${off}px` : `calc(100vw + ${off}px)`;
+    const ex  = goRight ? `calc(100vw + ${off}px)` : `-${off}px`;
+
+    wrap.animate(
+      [{ transform: `translateX(${sx})` }, { transform: `translateX(${ex})` }],
+      { duration: dur, easing: 'linear' }
+    ).onfinish = () => wrap.remove();
+  }
+
+  scheduleFlyby();
 
   // ── Keep screen awake (where supported) ──
   if ('wakeLock' in navigator) {
