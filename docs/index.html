@@ -682,11 +682,6 @@
         <stop offset="100%" stop-color="#687480"/>
       </radialGradient>
     </defs>
-    <!-- Tractor beam (hidden until activated) -->
-    <g class="tbeam" style="opacity:0">
-      <polygon class="tbp" style="animation:beam-pulse 0.7s ease-in-out infinite alternate"/>
-      <polygon class="tbc" style="animation:beam-pulse 0.7s ease-in-out infinite alternate 0.35s"/>
-    </g>
     <ellipse cx="40" cy="34" rx="32" ry="7" fill="rgba(80,220,140,0.1)"/>
     <ellipse cx="40" cy="28" rx="36" ry="10" fill="url(#ug)"/>
     <path d="M16,28 C16,14 28,8 40,8 C52,8 64,14 64,28Z" fill="#8090a2"/>
@@ -820,37 +815,51 @@
           buildingsEl.style.transform = 'translateX(-50%)';
         }
 
-        const tbeam = wrap.querySelector('.tbeam');
-        const tbp   = wrap.querySelector('.tbp');
-        const tbc   = wrap.querySelector('.tbc');
+        // ── Beam as a separate element inserted BEFORE #ground ──
+        // DOM order means it renders behind the ground layer, which clips
+        // the cone naturally at the horizon — no z-index juggling needed.
+        const beamDiv = document.createElement('div');
+        beamDiv.style.cssText = 'position:absolute;inset:0;pointer-events:none;';
+        const beamSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        beamSvg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;overflow:visible;opacity:0;';
+        const tbp = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        const tbc = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        tbp.style.animation = 'beam-pulse 0.7s ease-in-out infinite alternate';
+        tbc.style.animation = 'beam-pulse 0.7s ease-in-out infinite alternate 0.35s';
+        beamSvg.append(tbp, tbc);
+        beamDiv.appendChild(beamSvg);
+        const groundEl = document.getElementById('ground');
+        groundEl.parentNode.insertBefore(beamDiv, groundEl);
 
-        // Beam origin Y in screen coords (UFO disc bottom ≈ SVG y=34)
+        // Beam origin Y: UFO disc bottom in screen coords
         const ufoCY   = yPct / 100 * window.innerHeight + 34 * scale;
-        const buildGY = 0.78 * window.innerHeight;   // ground level screen Y
+        const buildGY = 0.78 * window.innerHeight;
+        const HALF    = 6 * Math.PI / 180;
 
-        // RAF loop — rotate cone so its tip always points at the building cluster
+        // RAF — screen-space polygon, extends 2.5× past ground so ground clips it
         let trackRAF;
-        const HALF_ANGLE = 6 * Math.PI / 180; // cone half-angle
         const trackBeam = () => {
-          if (!document.body.contains(wrap)) { cancelAnimationFrame(trackRAF); return; }
-          const frac   = Math.min(1, (performance.now() - wrapStartTime) / dur);
-          const ufoCX  = ufoCX0 + (ufoCX1 - ufoCX0) * frac;
-          const dx     = buildX - ufoCX;
-          const dy     = buildGY - ufoCY;
-          // Angle from vertical (atan2 with args swapped gives bearing from Y-axis)
-          const theta  = Math.atan2(dx, dy) * 180 / Math.PI;
-          // Beam length = actual distance → naturally shortens when directly below
-          const svgLen = Math.sqrt(dx * dx + dy * dy) / scale;
-          const coneW  = svgLen * Math.tan(HALF_ANGLE);  // proportional width at tip
-          tbeam.setAttribute('transform', `rotate(${theta.toFixed(2)}, 40, 34)`);
-          tbp.setAttribute('points',
-            `39,34 41,34 ${40+coneW},${34+svgLen} ${40-coneW},${34+svgLen}`);
-          tbc.setAttribute('points',
-            `39.5,34 40.5,34 ${40+coneW*0.45},${34+svgLen} ${40-coneW*0.45},${34+svgLen}`);
+          if (!document.body.contains(wrap)) { cancelAnimationFrame(trackRAF); beamDiv.remove(); return; }
+          const frac = Math.min(1, (performance.now() - wrapStartTime) / dur);
+          const ufoCX = ufoCX0 + (ufoCX1 - ufoCX0) * frac;
+          const dx = buildX - ufoCX, dy = buildGY - ufoCY;
+          const theta = Math.atan2(dx, dy);          // angle from vertical
+          const sint = Math.sin(theta), cost = Math.cos(theta);
+          const L    = Math.sqrt(dx*dx + dy*dy) * 2.5;  // extend well past horizon
+          const coneW = L * Math.tan(HALF);
+          // Tip deep underground; perpendicular vector is (cost, -sint)
+          const tipX = ufoCX + sint*L, tipY = ufoCY + cost*L;
+          const f = (w) => [
+            `${(ufoCX - cost*w).toFixed(1)},${(ufoCY + sint*w).toFixed(1)}`,
+            `${(ufoCX + cost*w).toFixed(1)},${(ufoCY - sint*w).toFixed(1)}`,
+            `${(tipX  + cost*w).toFixed(1)},${(tipY  - sint*w).toFixed(1)}`,
+            `${(tipX  - cost*w).toFixed(1)},${(tipY  + sint*w).toFixed(1)}`,
+          ].join(' ');
+          tbp.setAttribute('points', f(coneW));
+          tbc.setAttribute('points', f(coneW * 0.45));
           trackRAF = requestAnimationFrame(trackBeam);
         };
         trackRAF = requestAnimationFrame(trackBeam);
-        setTimeout(() => cancelAnimationFrame(trackRAF), 3500);
 
         // Green for building, orange-red for razing
         const building = civState === 0 || civState === 2;
@@ -858,7 +867,7 @@
         tbp.setAttribute('fill', `rgba(${rgb},0.12)`);
         tbc.setAttribute('fill', `rgba(${rgb},0.07)`);
 
-        tbeam.animate([{ opacity:0 }, { opacity:1 }], { duration:500, fill:'forwards' });
+        beamSvg.animate([{ opacity:0 }, { opacity:1 }], { duration:500, fill:'forwards' });
 
         // Trigger civ action once the beam has lit up (~700 ms in)
         const snap = civState;
@@ -870,10 +879,11 @@
           else if (snap === 3)   razeBuildings(() => { civState = 0; civBusy = false; });
         }, 700);
 
-        // Beam fades out
+        // Beam fades out then removes itself
         setTimeout(() => {
-          if (!document.body.contains(wrap)) return;
-          tbeam.animate([{ opacity:1 }, { opacity:0 }], { duration:600, fill:'forwards' });
+          if (!document.body.contains(wrap)) { cancelAnimationFrame(trackRAF); beamDiv.remove(); return; }
+          beamSvg.animate([{ opacity:1 }, { opacity:0 }], { duration:600, fill:'forwards' })
+            .onfinish = () => { cancelAnimationFrame(trackRAF); beamDiv.remove(); };
         }, 2800);
       }, beamDelay);
     }
