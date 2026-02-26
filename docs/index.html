@@ -849,14 +849,14 @@
           const coneW = L * Math.tan(HALF);
           // Tip deep underground; perpendicular vector is (cost, -sint)
           const tipX = ufoCX + sint*L, tipY = ufoCY + cost*L;
-          const f = (w) => [
-            `${(ufoCX - cost*w).toFixed(1)},${(ufoCY + sint*w).toFixed(1)}`,
-            `${(ufoCX + cost*w).toFixed(1)},${(ufoCY - sint*w).toFixed(1)}`,
-            `${(tipX  + cost*w).toFixed(1)},${(tipY  - sint*w).toFixed(1)}`,
-            `${(tipX  - cost*w).toFixed(1)},${(tipY  + sint*w).toFixed(1)}`,
+          const f = (topW, botW) => [
+            `${(ufoCX - cost*topW).toFixed(1)},${(ufoCY + sint*topW).toFixed(1)}`,
+            `${(ufoCX + cost*topW).toFixed(1)},${(ufoCY - sint*topW).toFixed(1)}`,
+            `${(tipX  + cost*botW).toFixed(1)},${(tipY  - sint*botW).toFixed(1)}`,
+            `${(tipX  - cost*botW).toFixed(1)},${(tipY  + sint*botW).toFixed(1)}`,
           ].join(' ');
-          tbp.setAttribute('points', f(coneW));
-          tbc.setAttribute('points', f(coneW * 0.45));
+          tbp.setAttribute('points', f(3,   coneW));
+          tbc.setAttribute('points', f(1.5, coneW * 0.45));
           trackRAF = requestAnimationFrame(trackBeam);
         };
         trackRAF = requestAnimationFrame(trackBeam);
