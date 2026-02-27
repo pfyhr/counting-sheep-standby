@@ -328,6 +328,32 @@
       opacity: 0;
     }
 
+    /* ── Futuristic towers (SC2000 style) ── */
+    .futower {
+      flex-shrink: 0;
+      transform-origin: bottom center;
+      position: relative;
+      background:
+        repeating-linear-gradient(to bottom,
+          rgba(255,255,255,0.09) 0px, rgba(255,255,255,0.09) 2px,
+          transparent 2px, transparent 9px),
+        linear-gradient(to right, #2e3d50, #6e90b8, #2e3d50);
+      opacity: 0;
+    }
+    .fububble {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%) translateY(-50%);
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%,
+        rgba(210,245,255,0.92),
+        rgba(70,185,255,0.65),
+        rgba(15,70,190,0.30));
+      box-shadow: 0 0 10px rgba(100,210,255,0.55),
+                  inset 0 0 8px rgba(255,255,255,0.25);
+    }
+
     /* Dim on tap (nightstand mode) */
     body.dimmed #scene { filter: brightness(0.35); }
     body.dimmed { cursor: none; }
@@ -733,6 +759,23 @@
     );
   }
 
+  function buildFuturistic() {
+    // Slim metallic spires with glass bubbles on top (SimCity 2000 style)
+    buildingsEl.innerHTML = `
+      <div class="futower" style="width:10px;height:130px"><div class="fububble" style="width:24px;height:24px"></div></div>
+      <div class="futower" style="width:12px;height:175px"><div class="fububble" style="width:32px;height:32px"></div></div>
+      <div class="futower" style="width:8px; height:155px"><div class="fububble" style="width:26px;height:26px"></div></div>
+      <div class="futower" style="width:10px;height:115px"><div class="fububble" style="width:22px;height:22px"></div></div>
+      <div class="futower" style="width:7px; height:145px"><div class="fububble" style="width:18px;height:18px"></div></div>
+    `;
+    buildingsEl.querySelectorAll('.futower').forEach((el, i) =>
+      el.animate(
+        [{ opacity:0, transform:'scaleY(0)' }, { opacity:0.92, transform:'scaleY(1)' }],
+        { duration:700, delay:i*110, easing:'ease-out', fill:'forwards' }
+      )
+    );
+  }
+
   function razeBuildings(done) {
     const els = [...buildingsEl.children];
     if (!els.length) { done(); return; }
@@ -793,7 +836,7 @@
     if (isUFO) {
       // For a new ancient cycle pick a fresh off-centre location now,
       // so we can aim the beam before the setTimeout fires.
-      const targetBuildX = (civState === 0)
+      const targetBuildX = (civState === 0 || civState === 2 || civState === 4)
         ? window.innerWidth * (0.22 + Math.random() * 0.56)
         : (buildX || window.innerWidth * 0.5);
 
@@ -808,8 +851,8 @@
         if (!document.body.contains(wrap) || civBusy) return;
         civBusy = true;
 
-        // Commit location for new ancient cycle
-        if (civState === 0) {
+        // Commit location for each new build cycle
+        if (civState === 0 || civState === 2 || civState === 4) {
           buildX = targetBuildX;
           buildingsEl.style.left      = buildX + 'px';
           buildingsEl.style.transform = 'translateX(-50%)';
@@ -862,7 +905,7 @@
         trackRAF = requestAnimationFrame(trackBeam);
 
         // Green for building, orange-red for razing
-        const building = civState === 0 || civState === 2;
+        const building = civState === 0 || civState === 2 || civState === 4;
         const rgb = building ? '80,255,140' : '255,90,50';
         tbp.setAttribute('fill', `rgba(${rgb},0.12)`);
         tbc.setAttribute('fill', `rgba(${rgb},0.07)`);
@@ -873,10 +916,12 @@
         const snap = civState;
         setTimeout(() => {
           if (!document.body.contains(wrap)) { civBusy = false; return; }
-          if      (snap === 0) { civState = 1; buildAncient(); setTimeout(() => civBusy = false, 1500); }
+          if      (snap === 0) { civState = 1; buildAncient();    setTimeout(() => civBusy = false, 1500); }
           else if (snap === 1)   razeBuildings(() => { civState = 2; civBusy = false; });
-          else if (snap === 2) { civState = 3; buildModern();  setTimeout(() => civBusy = false, 1500); }
-          else if (snap === 3)   razeBuildings(() => { civState = 0; civBusy = false; });
+          else if (snap === 2) { civState = 3; buildModern();     setTimeout(() => civBusy = false, 1500); }
+          else if (snap === 3)   razeBuildings(() => { civState = 4; civBusy = false; });
+          else if (snap === 4) { civState = 5; buildFuturistic(); setTimeout(() => civBusy = false, 1500); }
+          else if (snap === 5)   razeBuildings(() => { civState = 0; civBusy = false; });
         }, 700);
 
         // Beam fades out then removes itself
